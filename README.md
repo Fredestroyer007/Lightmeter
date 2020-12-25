@@ -1,1 +1,2 @@
-# light_meter
+# Photography/Cinema lightmeter
+WIP - Work in progress
