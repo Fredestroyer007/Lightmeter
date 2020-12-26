@@ -2,8 +2,20 @@
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include "Adafruit_TSL2591.h"
+#include <SPI.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_ILI9341.h>
+#include <XPT2046_Touchscreen.h>
+
+#define TFT_CS D0  
+#define TFT_DC D8 
+#define TFT_RST -1 
+#define TS_CS D3
+#define TS_CS D3
 
 Adafruit_TSL2591 tsl = Adafruit_TSL2591(2591);
+Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
+XPT2046_Touchscreen ts(TS_CS);
 
 const double CALIBRATION_INCIDENT = 250;
 
@@ -53,10 +65,25 @@ void configureSensor(uint16_t gain)
   newReadingGain = true;  // The next measurement will be less accurate, it shouldn't be used.
 }
 
+unsigned long pressMe()
+{
+tft.fillScreen(ILI9341_BLACK);
+unsigned long start = micros();
+tft.setCursor(0, 0);
+tft.setTextColor(ILI9341_WHITE);
+tft.setTextSize(6);
+tft.print("PRESS ME");
+return micros() - start;
+}
 
 void setup(void) 
 {
   Serial.begin(9600);
+
+  tft.begin();
+  ts.begin();
+
+  pressMe();
 
   if (tsl.begin()) 
   {
@@ -187,14 +214,28 @@ double sensorReading()
   return newLux;
 }
 
-void loop(void) { 
+unsigned long testTriangles()
+{
+tft.fillScreen(ILI9341_BLACK);
+unsigned long start = micros();
+tft.setCursor(0, 0);
+tft.setTextColor(ILI9341_WHITE);
+tft.setTextSize(2);
+tft.print("LUX: ");
+tft.println(lux);
+tft.print("EV: ");
+tft.println(ev);
+return micros() - start;
+}
+
+void loop(void) {
   lux = sensorReading();
-  ev = lux2ev(lux);
+  ev = lux2ev(lux); 
 
-  Serial.print(F("Lux: ")); Serial.println(lux);
-  Serial.print(F("EV: ")); Serial.println(ev);
-
-  Serial.print(F("ISO: ")); Serial.println(calculateIso());
-
-  delay(500);
+  if (ts.touched()) {
+    testTriangles();
+    delay(2000);
+    tft.fillScreen(ILI9341_BLACK);
+    pressMe();
+  }
 }
